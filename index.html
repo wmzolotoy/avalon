@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avalon — 3D причал</title>
+<style>
+body{margin:0;font-family:Inter,Arial,sans-serif;overflow:hidden;background:#123a50;touch-action:none}
+canvas{position:fixed;top:0;left:0;display:block}
+#labels{position:fixed;top:0;left:0;pointer-events:none;z-index:1}
+.label{pointer-events:auto;cursor:pointer;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 4px 16px rgba(0,0,0,.3);min-width:150px;white-space:nowrap}
+.label.r{transform:translateX(55%)}.label.l{transform:translateX(-55%);text-align:right}
+.label b{display:block;font-size:22px;color:#0f1923}
+.label .pr{font-size:17px;font-weight:700;color:#c87800;margin-top:2px}
+.label small{display:block;font-size:13px;color:#6e7882;margin-top:4px}
+#ui{position:fixed;top:0;left:0;right:0;padding:18px 22px;background:linear-gradient(rgba(8,22,34,.85),rgba(8,22,34,0));color:#fff;pointer-events:none;z-index:2}
+#ui h1{margin:0;font-size:26px}#ui p{margin:4px 0 0;font-size:16px;color:#d6e6f2}
+#hint{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#ffbe28;color:#14202a;font-weight:700;font-size:17px;padding:14px 24px;border-radius:26px;z-index:2;pointer-events:none;white-space:nowrap}
+#backTop{position:fixed;top:84px;left:16px;z-index:5;display:none;width:auto;margin:0;padding:14px 22px;background:#fff;color:#14202a;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#card{position:fixed;background:#fff;display:none;z-index:3;box-sizing:border-box;padding:18px 22px 22px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#card h2{margin:0;font-size:24px;color:#0f1923}
+.price{color:#0f1923;font-size:26px;font-weight:800;margin-top:2px}
+.toggle{display:none}
+.sub{color:#66717c;font-size:15px;margin-top:10px}
+.rating{color:#e09a00;font-weight:700;font-size:16px;margin-top:8px}
+.badge{display:inline-block;background:#e6f6ea;color:#1d7a3a;font-weight:700;font-size:14px;padding:6px 12px;border-radius:12px;margin:12px 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.cell{background:#f0f4f8;border-radius:14px;padding:12px}
+.cell small{display:block;color:#6e7882;font-size:13px}.cell b{font-size:19px;color:#0f1923}
+details{border-top:1px solid #e5e9ee;padding:12px 0}
+summary{font-size:17px;font-weight:700;cursor:pointer;color:#0f1923}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:15px}
+td{padding:7px 0;border-bottom:1px solid #f0f2f5}td:last-child{text-align:right;font-weight:600}
+button,.btn{display:block;box-sizing:border-box;text-align:center;text-decoration:none;color:#14202a;font-size:18px;font-weight:700;border:0;border-radius:28px;padding:16px;width:100%;cursor:pointer;margin-top:10px}
+.buy{background:#ffbe28}.call{background:#dff0ff}.studio{background:#1f2a35;color:#fff}.back{background:#eef2f6}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;z-index:4}
+@media (min-width:900px){#card{top:0;right:0;bottom:0;width:440px;overflow-y:auto;box-shadow:-6px 0 30px rgba(0,0,0,.25)}}
+@media (max-width:899px){
+ #card{left:0;right:0;bottom:0;height:110px;overflow:hidden;border-radius:22px 22px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.3);transition:height .3s}
+ #card.open{height:80vh;overflow-y:auto}
+ #card h2{font-size:21px}.price{font-size:22px}
+ .toggle{display:block;width:auto;margin:0;padding:12px 18px;font-size:16px;background:#ffbe28;white-space:nowrap}
+ #backTop{top:14px;left:14px;padding:10px 16px;font-size:16px}
+ body.sel #ui{display:none}
+}
+</style></head><body>
+<div id="ui"><h1>AVALON</h1><p>Оберіть човен на причалі</p></div>
+<div id="hint">Гортайте вниз ↓ ще моделі</div>
+<div id="load">Завантаження човнів…</div>
+<div id="card"></div>
+<button id="backTop">← Назад</button>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {Sky} from 'three/addons/objects/Sky.js';
+import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
+
+const PHONE='+380662616601';
+
+// ===== ТУТ РЕДАГУЮТЬСЯ ЧОВНИ, ЦІНИ ТА ХАРАКТЕРИСТИКИ =====
+const BOATS=[
+ {name:'AT290',sub:'Двомісний моторний ПВХ човен, сірий',price:'13 000 грн',rating:'4.91',reviews:11,
+  url:'https://www.avalon-official.com.ua/katalog/at290-siryi/',
+  key:[['Місць','2'],['Вантаж','330 кг'],['Мотор','до 7 к.с.'],['Довжина','290 см'],['Вага','27 кг'],['Балон','Ø 38 см']],
+  kit:[['Човен ПВХ','1'],['Пересувне сидіння','2'],['Слань / настил','3'],['Насос','1'],['Весла','2'],['Привальний брус','Так'],['Днищовий брус','Під замовлення'],['Ремкомплект','1'],['Сумка для перенесення','1'],['Інструкція та гарантійний талон','Так']],
+  specs:[['Тип','Моторний'],['Країна виробник','Україна'],['Довжина зовнішня','290 см'],['Ширина зовнішня','145 см'],['Довжина внутрішня','218 см'],['Ширина внутрішня','73 см'],['Діаметр балона','38 см'],['Щільність матеріалу','950 г/м²'],['Кількість балонів','3'],['Висота транця','38,1 см'],['Товщина транця','2,1 см'],['Матеріал','Армований ПВХ'],['Матеріал виробництва','Корея, Німеччина'],['Уключини','Поворотні'],['Весла','Розбірні, алюміній/пластик'],['Розмір пакунка','100×40×40 см']]},
+ {name:'ATK350',sub:'Шестимісний кільовий ПВХ човен, зелений',price:'29 400 грн',url:'https://www.avalon-official.com.ua/katalog/atk350-zelenyi/'},
+ {name:'A280',sub:'Двомісний гребний ПВХ човен, сірий',price:'11 300 грн',url:'https://www.avalon-official.com.ua/katalog/a280-siryi/'},
+ {name:'A249',sub:'Двомісний гребний ПВХ човен, білий',price:'9 100 грн',url:'https://www.avalon-official.com.ua/katalog/a249-bilyi/'},
+];
+// =========================================================
+const GAP=5.5;         // відстань між човнами
+const BOAT_SIZE=3.4;   // розмір човнів
+const BRIGHT=0.42;     // загальна яскравість сцени
+const PEEK=110;        // висота нижньої смужки на телефоні
+const TEX='https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/';
+
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,2000);
+const r=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+r.setPixelRatio(Math.min(devicePixelRatio,1.5));
+r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=BRIGHT;
+r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(r.domElement);
+const lr=new CSS2DRenderer();lr.domElement.id='labels';document.body.appendChild(lr.domElement);
+
+const world=new THREE.Group();scene.add(world);
+
+// небо
+const sunPos=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(38),THREE.MathUtils.degToRad(210));
+function makeSky(){const s=new Sky();s.scale.setScalar(1500);const u=s.material.uniforms;u.turbidity.value=3;u.rayleigh.value=2.2;u.mieCoefficient.value=0.003;u.mieDirectionalG.value=0.75;u.sunPosition.value.copy(sunPos);return s;}
+world.add(makeSky());
+const envScene=new THREE.Scene();envScene.add(makeSky());
+scene.environment=new THREE.PMREMGenerator(r).fromScene(envScene).texture;
+scene.environmentIntensity=0.6;
+const FOG=new THREE.Fog(0x7f9db3,60,240);scene.fog=FOG;
+scene.add(new THREE.HemisphereLight(0xcfe3f5,0x2c3a2c,0.4));
+const sun=new THREE.DirectionalLight(0xffeccc,1.7);
+sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);
+Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:70});
+sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;sun.shadow.radius=4;
+scene.add(sun);scene.add(sun.target);
+
+// вода
+const wn=new THREE.TextureLoader().load(TEX+'waternormals.jpg');
+wn.wrapS=wn.wrapT=THREE.RepeatWrapping;wn.repeat.set(80,80);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
+ new THREE.MeshPhysicalMaterial({color:0x123f55,roughness:0.25,metalness:0,normalMap:wn,normalScale:new THREE.Vector2(0.3,0.3),clearcoat:0.35,clearcoatRoughness:0.35}));
+water.rotation.x=-Math.PI/2;water.receiveShadow=true;world.add(water);
+
+// світле дерево
+function woodTexture(){
+ const c=document.createElement('canvas');c.width=512;c.height=64;const g=c.getContext('2d');
+ g.fillStyle='#b8946a';g.fillRect(0,0,512,64);
+ for(let i=0;i<34;i++){g.strokeStyle=`rgba(${110+Math.random()*30},${80+Math.random()*20},50,${0.18+Math.random()*0.25})`;g.lineWidth=1+Math.random()*1.5;
+  g.beginPath();let y=Math.random()*64;g.moveTo(0,y);for(let x=0;x<=512;x+=32){y+=(Math.random()-0.5)*3;g.lineTo(x,y);}g.stroke();}
+ for(let i=0;i<2;i++){const x=Math.random()*512,y=12+Math.random()*40;const gr=g.createRadialGradient(x,y,1,x,y,8);gr.addColorStop(0,'rgba(90,60,35,.8)');gr.addColorStop(1,'rgba(90,60,35,0)');g.fillStyle=gr;g.beginPath();g.ellipse(x,y,11,5,0,0,7);g.fill();}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
+const woodTex=woodTexture();
+const plankMats=[0xfff4e6,0xf2e4d0,0xe8dccb,0xfaeedd,0xe0d2bd,0xf6ead8].map(c=>new THREE.MeshStandardMaterial({map:woodTex,color:c,roughness:0.9}));
+const plankGeo=new THREE.BoxGeometry(2.4,0.07,0.25);
+
+// причал
+const pier=new THREE.Group();world.add(pier);
+const LEN=BOATS.length*GAP+10, PH=0.5, Z0=-6;
+for(let z=Z0;z<Z0+LEN;z+=0.3){
+ const p=new THREE.Mesh(plankGeo,plankMats[Math.floor(Math.random()*plankMats.length)]);
+ p.position.set((Math.random()-0.5)*0.05,PH+(Math.random()-0.5)*0.01,z);p.rotation.y=(Math.random()-0.5)*0.025;
+ p.castShadow=p.receiveShadow=true;pier.add(p);}
+const postMat=new THREE.MeshStandardMaterial({color:0x5a4330,roughness:1});
+const postGeo=new THREE.CylinderGeometry(0.1,0.12,1.4,10);
+for(let z=Z0;z<=Z0+LEN;z+=2.5){[-1.15,1.15].forEach(x=>{const p=new THREE.Mesh(postGeo,postMat);p.position.set(x,PH-0.3,z);p.castShadow=true;pier.add(p);});}
+
+// берег
+const ground=new THREE.Mesh(new THREE.BoxGeometry(260,2,40),new THREE.MeshStandardMaterial({color:0x4d6a42,roughness:1}));ground.position.set(0,-0.3,-28);world.add(ground);
+const sand=new THREE.Mesh(new THREE.BoxGeometry(260,0.4,3),new THREE.MeshStandardMaterial({color:0xb9a67f,roughness:1}));sand.position.set(0,0.1,-7.5);world.add(sand);
+const trunkMat=new THREE.MeshStandardMaterial({color:0x3e2d20,roughness:1});
+const spruceMats=[0,1,2].map(i=>new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.37,0.35,0.14+i*0.025),roughness:1,flatShading:true}));
+const leafMats=[0,1,2].map(i=>new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.26,0.38,0.21+i*0.03),roughness:1,flatShading:true}));
+function spruce(x,z,s){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.CylinderGeometry(0.12*s,0.18*s,1.2*s,6),trunkMat);t.position.y=0.6*s;g.add(t);
+ const m=spruceMats[Math.floor(Math.random()*3)];
+ for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.ConeGeometry((1.3-i*0.27)*s,1.6*s,9),m);c.position.y=(1.4+i*0.85)*s;c.castShadow=true;g.add(c);}
+ g.position.set(x,0.7,z);world.add(g);}
+function leafy(x,z,s){const g=new THREE.Group();const t=new THREE.Mesh(new THREE.CylinderGeometry(0.14*s,0.2*s,2*s,6),trunkMat);t.position.y=s;g.add(t);
+ const m=leafMats[Math.floor(Math.random()*3)];
+ for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.IcosahedronGeometry((0.8+Math.random()*0.5)*s,1),m);
+  b.position.set((Math.random()-0.5)*1.4*s,(2.3+Math.random())*s,(Math.random()-0.5)*1.4*s);b.castShadow=true;g.add(b);}
+ g.position.set(x,0.7,z);world.add(g);}
+for(let i=0;i<70;i++){const x=-40+Math.random()*80,z=-10-Math.random()*16;(Math.random()<0.6?spruce:leafy)(x,z,0.9+Math.random()*0.7);}
+
+// пагорби по горизонту
+const hillGeo=new THREE.SphereGeometry(1,16,8);
+const hillMats=[0,1,2].map(i=>new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.33,0.3,0.12+i*0.025),roughness:1,flatShading:true}));
+for(let i=0;i<60;i++){const a=i/60*Math.PI*2+Math.random()*0.05,rad=150+Math.random()*60;
+ const h=new THREE.Mesh(hillGeo,hillMats[i%3]);
+ h.scale.set(25+Math.random()*25,8+Math.random()*14,20);h.position.set(Math.cos(a)*rad,-2,Math.sin(a)*rad-10);h.rotation.y=-a;world.add(h);}
+
+// студія для режиму "окремо"
+const studio=new THREE.Group();studio.visible=false;scene.add(studio);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x2c3540,roughness:0.9}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;studio.add(floor);
+
+// стан і камера
+const isDesk=()=>innerWidth>=900;
+let desk=isDesk(), listZ=1, selected=null, anim=null, studioOn=false;
+const maxZ=()=>(desk?Math.ceil(BOATS.length/2)-1:BOATS.length-1)*GAP+1;
+const listView=()=>{const cx=desk?0:0.8;return {pos:new THREE.Vector3(cx,desk?11:10.5,listZ+4.5),target:new THREE.Vector3(cx,0,listZ+1)};};
+const controls=new OrbitControls(cam,r.domElement);
+controls.enableDamping=true;controls.enablePan=false;controls.maxPolarAngle=Math.PI/2.15;controls.enabled=false;
+{const v=listView();cam.position.copy(v.pos);controls.target.copy(v.target);}
+
+const boats=[],labels=[];
+function arrange(){
+ desk=isDesk();
+ pier.position.x=desk?0:-3.4;
+ boats.forEach((b,i)=>{
+  let side,x,z;
+  if(desk){side=i%2?1:-1;x=side*3.6;z=Math.floor(i/2)*GAP;}else{side=1;x=0;z=i*GAP;}
+  b.position.x=x;b.position.z=z;b.userData.side=side;
+  const L=labels[i];L.obj.position.set(x+side*1.7,0.5,z);
+  L.inner.className='label '+(side>0?'r':'l');
+ });
+ listZ=THREE.MathUtils.clamp(listZ,1,maxZ());
+}
+
+new GLTFLoader().load('boat.glb',g=>{
+ const src=g.scene;src.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+ const size=new THREE.Box3().setFromObject(src).getSize(new THREE.Vector3());
+ src.scale.setScalar(BOAT_SIZE/Math.max(size.x,size.z));
+ const b2=new THREE.Box3().setFromObject(src);src.position.sub(b2.getCenter(new THREE.Vector3()));src.position.y+=(b2.max.y-b2.min.y)/2;
+ BOATS.forEach(d=>{
+  const grp=new THREE.Group();grp.add(src.clone());grp.position.y=0.05;grp.rotation.y=Math.PI/2;grp.userData=d;scene.add(grp);boats.push(grp);
+  const wrap=document.createElement('div');const inner=document.createElement('div');wrap.appendChild(inner);
+  inner.innerHTML=`<b>${d.name}</b><div class="pr">${d.price}</div><small>Натисніть, щоб роздивитися</small>`;
+  inner.onclick=()=>select(grp);
+  const obj=new CSS2DObject(wrap);scene.add(obj);labels.push({obj,inner});
+ });
+ arrange();
+ document.getElementById('load').style.display='none';
+},undefined,()=>{document.getElementById('load').textContent='Не вдалося завантажити boat.glb';});
+
+// прокрутка
+const scrollBy=d=>{if(selected||anim)return;listZ=THREE.MathUtils.clamp(listZ+d,1,maxZ());};
+addEventListener('wheel',e=>scrollBy(e.deltaY*0.01),{passive:true});
+let ty=null,moved=0;
+addEventListener('touchstart',e=>{ty=e.touches[0].clientY;moved=0;},{passive:true});
+addEventListener('touchmove',e=>{if(ty===null||selected)return;const y=e.touches[0].clientY;scrollBy((ty-y)*0.03);moved+=Math.abs(ty-y);ty=y;},{passive:true});
+addEventListener('touchend',()=>{ty=null;});
+
+function layout(){
+ if(isDesk()!==desk&&!selected)arrange();
+ let w=innerWidth,h=innerHeight;if(selected){if(isDesk())w=innerWidth-440;else h=innerHeight-PEEK;}
+ r.setSize(w,h);lr.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();
+}
+addEventListener('resize',layout);layout();
+
+// режим "окремо"
+function setStudio(on){
+ studioOn=on;world.visible=!on;studio.visible=on;
+ boats.forEach(b=>b.visible=!on||b===selected);
+ scene.background=on?new THREE.Color(0x161d25):null;scene.fog=on?null:FOG;
+ if(on&&selected){studio.position.set(selected.position.x,0,selected.position.z);controls.maxDistance=12;controls.minDistance=2;controls.maxPolarAngle=Math.PI/2.05;}
+ else{controls.maxDistance=9;controls.minDistance=3;controls.maxPolarAngle=Math.PI/2.15;}
+ const b=document.getElementById('studioBtn');if(b)b.textContent=on?'🌊 Показати на причалі':'🔍 Роздивитися окремо';
+ if(on&&!isDesk())setOpen(false);
+}
+
+const card=document.getElementById('card');
+function setOpen(o){card.classList.toggle('open',o);const t=document.getElementById('toggle');if(t)t.textContent=o?'Сховати ▼':'Деталі ▲';if(!o)card.scrollTop=0;}
+const rows=a=>a.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+function showCard(d){
+ card.innerHTML=`<div class="head"><div><h2>Avalon ${d.name}</h2><div class="price">${d.price}</div></div>
+   <button class="toggle" id="toggle">Деталі ▲</button></div>
+  <div class="sub">${d.sub||''}</div>
+  ${d.rating?`<div class="rating">★ ${d.rating} · ${d.reviews} відгуків</div>`:''}
+  <div class="badge">🚚 Безкоштовна доставка Новою Поштою</div>
+  ${d.key?`<div class="grid">${d.key.map(([k,v])=>`<div class="cell"><small>${k}</small><b>${v}</b></div>`).join('')}</div>`:''}
+  <button class="studio" id="studioBtn">🔍 Роздивитися окремо</button>
+  ${d.kit?`<details><summary>Що в комплекті</summary><table>${rows(d.kit)}</table></details>`:''}
+  ${d.specs?`<details><summary>Усі характеристики</summary><table>${rows(d.specs)}</table></details>`:''}
+  <a class="btn buy" href="${d.url}" target="_blank">Замовити</a>
+  <a class="btn call" href="tel:${PHONE}">📞 Подзвонити</a>
+  <button class="back" id="back">← Назад до причалу</button>`;
+ card.style.display='block';setOpen(false);
+ document.getElementById('toggle').onclick=()=>setOpen(!card.classList.contains('open'));
+ document.getElementById('back').onclick=goBack;
+ document.getElementById('studioBtn').onclick=()=>setStudio(!studioOn);
+}
+
+const backTop=document.getElementById('backTop');
+backTop.onclick=goBack;
+addEventListener('keydown',e=>{if(e.key==='Escape'&&selected)goBack();});
+
+function fly(pos,target,done){anim={p0:cam.position.clone(),t0:controls.target.clone(),p1:pos,t1:target,start:performance.now(),dur:1200,done};}
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function select(o){
+ if(selected)return;selected=o;
+ document.body.classList.add('sel');
+ lr.domElement.style.display='none';document.getElementById('hint').style.display='none';
+ backTop.style.display='block';
+ showCard(o.userData);layout();
+ const s=o.userData.side||1;
+ const t=o.position.clone().add(new THREE.Vector3(0,0.3,0));
+ fly(o.position.clone().add(new THREE.Vector3(3.8*s,2,3.4)),t,()=>{controls.enabled=true;controls.minDistance=3;controls.maxDistance=9;});
+ document.querySelector('#ui p').textContent='Крутіть і наближайте, щоб роздивитися';
+}
+function goBack(){
+ if(!selected)return;
+ if(studioOn)setStudio(false);
+ controls.enabled=false;selected=null;card.style.display='none';setOpen(false);
+ document.body.classList.remove('sel');
+ backTop.style.display='none';
+ if(isDesk()!==desk)arrange();layout();
+ document.querySelector('#ui p').textContent='Оберіть човен на причалі';
+ const v=listView();fly(v.pos,v.target,()=>{lr.domElement.style.display='';document.getElementById('hint').style.display='';});
+}
+const ray=new THREE.Raycaster(),m=new THREE.Vector2();
+r.domElement.addEventListener('click',e=>{
+ if(selected||moved>10)return;
+ const rc=r.domElement.getBoundingClientRect();
+ m.set((e.clientX-rc.left)/rc.width*2-1,-((e.clientY-rc.top)/rc.height)*2+1);ray.setFromCamera(m,cam);
+ const hit=ray.intersectObjects(boats,true)[0];if(!hit)return;
+ let o=hit.object;while(!o.userData.name)o=o.parent;select(o);
+});
+
+(function loop(t){requestAnimationFrame(loop);
+ wn.offset.set(t*0.00001,t*0.000015);
+ if(anim){const k=Math.min((t-anim.start)/anim.dur,1),e=ease(k);cam.position.lerpVectors(anim.p0,anim.p1,e);controls.target.lerpVectors(anim.t0,anim.t1,e);if(k>=1){const d=anim.done;anim=null;d&&d();}}
+ else if(!selected){const v=listView();cam.position.lerp(v.pos,0.12);controls.target.lerp(v.target,0.12);}
+ sun.position.copy(sunPos).multiplyScalar(30).add(controls.target);sun.target.position.copy(controls.target);
+ boats.forEach((b,i)=>{const amp=studioOn?0:1;b.position.y=0.05+Math.sin(t/800+i)*0.03*amp;b.rotation.z=Math.sin(t/1100+i)*0.015*amp;});
+ if(selected)controls.update();else cam.lookAt(controls.target);
+ r.render(scene,cam);lr.render(scene,cam);
+})(0);
+</script></body></html>
