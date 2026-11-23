@@ -31,7 +31,7 @@ table{width:100%;border-collapse:collapse;margin-top:10px;font-size:15px}
 td{padding:7px 0;border-bottom:1px solid #f0f2f5}td:last-child{text-align:right;font-weight:600}
 button,.btn{display:block;box-sizing:border-box;text-align:center;text-decoration:none;color:#14202a;font-size:18px;font-weight:700;border:0;border-radius:28px;padding:16px;width:100%;cursor:pointer;margin-top:10px}
 .buy{background:#ffbe28}.call{background:#dff0ff}.studio{background:#1f2a35;color:#fff}.back{background:#eef2f6}
-#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;z-index:4}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;z-index:4;text-align:center;padding:20px}
 @media (min-width:900px){#card{top:0;right:0;bottom:0;width:440px;overflow-y:auto;box-shadow:-6px 0 30px rgba(0,0,0,.25)}}
 @media (max-width:899px){
  #card{left:0;right:0;bottom:0;height:110px;overflow:hidden;border-radius:22px 22px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.3);transition:height .3s}
@@ -51,6 +51,8 @@ button,.btn{display:block;box-sizing:border-box;text-align:center;text-decoratio
 <script type="module">
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {Sky} from 'three/addons/objects/Sky.js';
 import {CSS2DRenderer,CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
@@ -182,7 +184,10 @@ function arrange(){
  listZ=THREE.MathUtils.clamp(listZ,1,maxZ());
 }
 
-new GLTFLoader().load('boat.glb',g=>{
+// завантаження моделі (підтримує стиснуті файли Draco і Meshopt)
+const draco=new DRACOLoader();draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+const gl=new GLTFLoader();gl.setDRACOLoader(draco);gl.setMeshoptDecoder(MeshoptDecoder);
+gl.load('boat.glb',g=>{
  const src=g.scene;src.traverse(o=>{if(o.isMesh)o.castShadow=true;});
  const size=new THREE.Box3().setFromObject(src).getSize(new THREE.Vector3());
  src.scale.setScalar(BOAT_SIZE/Math.max(size.x,size.z));
@@ -196,7 +201,7 @@ new GLTFLoader().load('boat.glb',g=>{
  });
  arrange();
  document.getElementById('load').style.display='none';
-},undefined,()=>{document.getElementById('load').textContent='Не вдалося завантажити boat.glb';});
+},undefined,err=>{document.getElementById('load').textContent='Не вдалося завантажити boat.glb: '+(err&&err.message?err.message:err);});
 
 // прокрутка
 const scrollBy=d=>{if(selected||anim)return;listZ=THREE.MathUtils.clamp(listZ+d,1,maxZ());};
