@@ -198,7 +198,7 @@ const postGeo=new THREE.CylinderGeometry(0.1,0.12,1.4,10);
 const pier=new THREE.Group();world.add(pier);
 const dress=new THREE.Group();world.add(dress);
 
-// морський ліхтар: дерев'яна стійка + скляний ліхтар
+// морський ліхтар
 const lanternWood=new THREE.MeshStandardMaterial({color:0x4a3726,roughness:0.9});
 const lanternMetal=new THREE.MeshStandardMaterial({color:0x1d1a17,roughness:0.5,metalness:0.7});
 const glassMat=new THREE.MeshStandardMaterial({color:0xffe6c0,emissive:0xffc27a,emissiveIntensity:2.2,transparent:true,opacity:0.9});
@@ -213,7 +213,7 @@ function lantern(x,z){
  const s=new THREE.Sprite(glowMat);s.scale.set(0.9,0.9,1);s.position.y=1.25;g.add(s);
  g.position.set(x,PH,z);return g;}
 
-// ---------- берег і ліс (суцільний, без просвітів) ----------
+// ---------- берег і ліс ----------
 const ground=new THREE.Mesh(new THREE.BoxGeometry(400,2,60),new THREE.MeshStandardMaterial({color:0x1d2a1c,roughness:1}));ground.position.set(0,-0.3,-38);world.add(ground);
 const sand=new THREE.Mesh(new THREE.BoxGeometry(400,0.4,3),new THREE.MeshStandardMaterial({color:0x5f5747,roughness:1}));sand.position.set(0,0.1,-7.5);world.add(sand);
 const coneG=new THREE.ConeGeometry(1,1,8).translate(0,0.5,0);
@@ -225,7 +225,6 @@ function forest(count,zMin,zMax,xSpan,sMin,sMax,light){
  im.castShadow=true;world.add(im);}
 forest(260,-10,-26,140,3,5.5,0.1);
 forest(500,-26,-60,300,5,9,0.07);
-// далекі гори і темна лінія лісу по всьому колу
 const ringMat=new THREE.MeshStandardMaterial({color:0x0e1712,roughness:1,side:THREE.DoubleSide});
 const ringR=new THREE.Mesh(new THREE.CylinderGeometry(200,200,10,96,1,true),ringMat);ringR.position.y=4;world.add(ringR);
 const hillGeo=new THREE.SphereGeometry(1,16,8);
@@ -236,22 +235,31 @@ for(let i=0;i<30;i++){const s=new THREE.Sprite(glowMat);const k=0.3+Math.random(
 
 // ---------- ЕЛІНГ у кінці причалу ----------
 const house=new THREE.Group();world.add(house);
-const hWood=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:0.95});
-const hRoof=new THREE.MeshStandardMaterial({color:0x22262b,roughness:0.7,metalness:0.2});
-const hTrim=new THREE.MeshStandardMaterial({color:0xd9cbb5,roughness:0.8});
+const hWood=new THREE.MeshStandardMaterial({color:0xb5483a,roughness:0.85,emissive:0x2a0c08,side:THREE.DoubleSide});
+const hRoof=new THREE.MeshStandardMaterial({color:0x5b6670,roughness:0.6,metalness:0.3});
+const hTrim=new THREE.MeshStandardMaterial({color:0xf3ece0,roughness:0.7,emissive:0x2a2826});
 const W=5.6,D=4.2,Hh=2.6;
 [[W,Hh,0.12,0,Hh/2,-D/2],[0.12,Hh,D,-W/2,Hh/2,0],[0.12,Hh,D,W/2,Hh/2,0],[1.6,Hh,0.12,-W/2+0.8,Hh/2,D/2],[1.6,Hh,0.12,W/2-0.8,Hh/2,D/2],[W,0.5,0.12,0,Hh-0.25,D/2]].forEach(([a,b,c,x,y,z])=>{
  const m=new THREE.Mesh(new THREE.BoxGeometry(a,b,c),hWood);m.position.set(x,y+PH,z);m.castShadow=m.receiveShadow=true;house.add(m);});
 const roofL=new THREE.Mesh(new THREE.BoxGeometry(W/2+0.6,0.08,D+0.6),hRoof);roofL.position.set(-W/4-0.1,PH+Hh+0.7,0);roofL.rotation.z=0.5;roofL.castShadow=true;house.add(roofL);
 const roofR=roofL.clone();roofR.position.x=W/4+0.1;roofR.rotation.z=-0.5;house.add(roofR);
+const gShape=new THREE.Shape();gShape.moveTo(-W/2,0);gShape.lineTo(W/2,0);gShape.lineTo(0,1.48);gShape.closePath();
+const gGeo=new THREE.ShapeGeometry(gShape);
+[-D/2,D/2].forEach(z=>{const g=new THREE.Mesh(gGeo,hWood);g.position.set(0,PH+Hh,z);g.castShadow=true;house.add(g);});
+const ridge=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.12,D+0.7),hRoof);ridge.position.set(0,PH+Hh+1.5,0);house.add(ridge);
+const win=new THREE.Mesh(new THREE.CircleGeometry(0.28,24),new THREE.MeshBasicMaterial({color:0xffc27a,toneMapped:false}));win.position.set(0,PH+Hh+0.6,D/2+0.02);house.add(win);
 const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.1),new THREE.MeshBasicMaterial({color:0xffb36b,transparent:true,opacity:0.55,toneMapped:false}));doorGlow.position.set(0,PH+1.05,D/2-0.3);house.add(doorGlow);
 const houseLight=new THREE.PointLight(0xffb06a,18*LAMPS,9,2);houseLight.position.set(0,PH+1.6,D/2+0.6);house.add(houseLight);
+const houseFill=new THREE.SpotLight(0xfff0dc,40*LAMPS,20,0.7,0.6,1.5);houseFill.position.set(0,7,D/2+6);houseFill.target=house;house.add(houseFill);
 [-1.3,1.3].forEach(x=>{const t=new THREE.Mesh(new THREE.BoxGeometry(0.08,2.1,0.08),hTrim);t.position.set(x,PH+1.05,D/2+0.05);house.add(t);});
 [-W/2-0.15,W/2+0.15].forEach(x=>house.add(lantern(x,D/2+0.3)));
 const deck=new THREE.Mesh(new THREE.BoxGeometry(W+1.2,0.08,D+2.4),plankMats[1]);deck.position.set(0,PH-0.02,0.4);deck.receiveShadow=true;house.add(deck);
+const pileGeo=new THREE.CylinderGeometry(0.13,0.15,2.2,10);
+[-3.2,0,3.2].forEach(x=>[-2.7,0.4,3.5].forEach(z=>{const p=new THREE.Mesh(pileGeo,darkMat);p.position.set(x,PH-1.1,z);p.castShadow=true;house.add(p);}));
+[-2.7,0.4,3.5].forEach(z=>{const b=new THREE.Mesh(new THREE.BoxGeometry(6.6,0.2,0.18),darkMat);b.position.set(0,PH-0.15,z);house.add(b);});
 const houseHit=new THREE.Mesh(new THREE.BoxGeometry(W,4,D),new THREE.MeshBasicMaterial({visible:false}));houseHit.position.y=2;house.add(houseHit);
 
-// ---------- студія ----------
+ // ---------- студія ----------
 const studio=new THREE.Group();studio.visible=false;scene.add(studio);
 const floor=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x1a212b,roughness:0.6}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;studio.add(floor);
 const ring=new THREE.Mesh(new THREE.RingGeometry(3.2,3.26,96),new THREE.MeshBasicMaterial({color:0xe4b46b,transparent:true,opacity:0.5,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.y=0.01;studio.add(ring);
