@@ -491,7 +491,15 @@ r.domElement.addEventListener('pointermove',e=>{
  r.domElement.style.cursor=(hovered||ray.intersectObject(houseHit,false).length)?'pointer':'';});
 
 // ---------- анімація ----------
-(function loop(t){requestAnimationFrame(loop);
+// ---------- легкий режим для телефонів ----------
+const LOW=/Android|iPhone|iPad/i.test(navigator.userAgent)||innerWidth<900;
+if(LOW){
+ r.setPixelRatio(1);r.shadowMap.enabled=false;moon.castShadow=false;
+ water.material=new THREE.MeshStandardMaterial({color:0x0d2135,roughness:0.3,normalMap:wn,normalScale:new THREE.Vector2(0.3,0.3)});
+ const st=document.createElement('style');st.textContent='.blur{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(11,16,23,.93)!important}';document.head.appendChild(st);
+ (function hideSpots(){if(spots.length)spots.forEach(s=>s.visible=false);else setTimeout(hideSpots,300);})();
+}
+ (function loop(t){requestAnimationFrame(loop);
  wn.offset.set(t*0.00001,t*0.000015);
  if(anim){const k=Math.min((t-anim.start)/anim.dur,1),e=ease(k);cam.position.lerpVectors(anim.p0,anim.p1,e);controls.target.lerpVectors(anim.t0,anim.t1,e);if(k>=1){const d=anim.done;anim=null;d&&d();}}
  else if(!selected){const v=listView();cam.position.lerp(v.pos,0.12);controls.target.lerp(v.target,0.12);}
