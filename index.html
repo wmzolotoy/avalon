@@ -291,7 +291,10 @@ const sconce=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.14),glassMat);scon
 const sGlow=new THREE.Sprite(glowMat);sGlow.scale.set(0.8,0.8,1);sGlow.position.set(0,PH+2.22,F+0.15);house.add(sGlow);
 const houseLight=new THREE.PointLight(0xffb06a,14*LAMPS,8,2);houseLight.position.set(0,PH+2,F+1);house.add(houseLight);
 const houseFill=new THREE.SpotLight(0xfff0dc,22*LAMPS,20,0.7,0.6,1.5);houseFill.position.set(0,7,D/2+6);houseFill.target=house;house.add(houseFill);
-
+// човник усередині
+const inBoat=new THREE.Mesh(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,Math.PI/2,Math.PI/2),new THREE.MeshStandardMaterial({color:0x2f5d4a,roughness:0.6,side:THREE.DoubleSide}));
+inBoat.scale.set(0.6,0.35,1.5);inBoat.position.set(0,PH+0.4,-0.2);house.add(inBoat);
+bx(1.0,0.05,0.25,brownM,0,PH+0.32,-0.2);
 // рятувальний круг
 const lr1=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.06,10,28),new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:0.5}));lr1.position.set(-2.0,PH+2.2,F+0.06);house.add(lr1);
 [0,1,2,3].forEach(i=>{const a=i*Math.PI/2+Math.PI/4;const b=bx(0.1,0.13,0.14,redM,-2.0+Math.cos(a)*0.2,PH+2.2+Math.sin(a)*0.2,F+0.06);b.rotation.z=a;});
@@ -315,15 +318,12 @@ const pileGeo=new THREE.CylinderGeometry(0.13,0.15,2.2,10);
 [-3.2,0,3.2].forEach(x=>[-2.7,0.4,3.5].forEach(z=>{const p=new THREE.Mesh(pileGeo,darkMat);p.position.set(x,PH-1.1,z);p.castShadow=true;house.add(p);}));
 [-2.7,0.4,3.5].forEach(z=>bx(6.6,0.2,0.18,darkMat,0,PH-0.15,z));
 const houseHit=new THREE.Mesh(new THREE.BoxGeometry(W,4,D),new THREE.MeshBasicMaterial({visible:false}));houseHit.position.y=2;house.add(houseHit);
-```js
 // правки елінгу: темне дерево, зачинені ворота, всередині порожньо
 hWood.color.set(0x5a4632);hWood.emissive.set(0x120c07);seamM.color.set(0x3a2c1f);
 house.remove(inBoat);house.remove(inLight);house.remove(doorGlow);
 house.children.filter(o=>o.isMesh&&Math.abs(o.position.y-(PH+0.32))<0.001&&Math.abs(o.position.z+0.2)<0.001).forEach(o=>house.remove(o));
 house.children.forEach(o=>{if(o.isGroup&&Math.abs(Math.abs(o.rotation.y)-1.9)<0.01)o.rotation.y=0;});
-```
- // ===== КІНЕЦЬ ЧАСТИНИ 1 =====
- // ---------- студія ----------
+ // ===== КІНЕЦЬ ЧАСТИНИ 1 =====// ---------- студія ----------
 const studio=new THREE.Group();studio.visible=false;scene.add(studio);
 const floor=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x1a212b,roughness:0.6}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;studio.add(floor);
 const ring=new THREE.Mesh(new THREE.RingGeometry(3.2,3.26,96),new THREE.MeshBasicMaterial({color:0xe4b46b,transparent:true,opacity:0.5,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.y=0.01;studio.add(ring);
