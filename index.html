@@ -499,6 +499,32 @@ if(LOW){
  const st=document.createElement('style');st.textContent='.blur{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(11,16,23,.93)!important}';document.head.appendChild(st);
  (function hideSpots(){if(spots.length)spots.forEach(s=>s.visible=false);else setTimeout(hideSpots,300);})();
 }
+ // ---------- день / ніч ----------
+const hemiL=scene.children.find(o=>o.isHemisphereLight);
+const MODES={
+ night:{sky:[0x0b1430,0x26386a,0x4a5282,0xd9825a,0x0b1018],fog:0x141c33,hemi:[0x8494c4,0x10161f,0.85],sun:[0xb0c0ff,0.75],dir:[-0.35,1,0.45],water:0x0d2135,env:0.5,lamp:1},
+ day:{sky:[0x2f6fc4,0x5f9fe0,0xb9d6ef,0xf3e2c4,0x24404f],fog:0xa9c4d8,hemi:[0xe3f0ff,0x4a5a3a,1.15],sun:[0xfff1da,2.6],dir:[0.4,1,0.3],water:0x245f80,env:0.9,lamp:0}
+};
+let mode=localStorage.getItem('avalonMode')||'night';
+const modeBtn=document.createElement('a');modeBtn.href='#';modeBtn.id='modeBtn';modeBtn.className='pill';
+modeBtn.style.cssText='background:rgba(255,255,255,.12);color:#fff';
+document.getElementById('top').insertBefore(modeBtn,document.getElementById('callTop'));
+const ms=document.createElement('style');ms.textContent='@media(max-width:899px){#modeBtn{margin-left:auto}#callTop{margin-left:0!important}}';document.head.appendChild(ms);
+function setMode(m){
+ mode=m;localStorage.setItem('avalonMode',m);const c=MODES[m],u=skyMat.uniforms;
+ ['top','mid','hor','warm','bottom'].forEach((k,i)=>u[k].value.copy(v3(c.sky[i])));
+ FOG.color.set(c.fog);
+ hemiL.color.set(c.hemi[0]);hemiL.groundColor.set(c.hemi[1]);hemiL.intensity=c.hemi[2];
+ moon.color.set(c.sun[0]);moon.intensity=c.sun[1];moonDir.set(...c.dir).normalize();
+ water.material.color.set(c.water);
+ scene.environment=new THREE.PMREMGenerator(r).fromScene(envScene,0.02,0.1,1000).texture;scene.environmentIntensity=c.env;
+ const L=c.lamp*LAMPS;
+ poolWaterMat.opacity=0.28*L;poolDeckMat.opacity=0.38*L;glowMat.opacity=0.15+0.75*c.lamp;glassMat.emissiveIntensity=0.3+1.9*c.lamp;
+ spots.forEach(s=>s.intensity=22*L);houseLight.intensity=14*L;houseFill.intensity=22*L;
+ modeBtn.textContent=m==='day'?'🌙 НІЧ':'☀️ ДЕНЬ';
+}
+modeBtn.onclick=e=>{e.preventDefault();setMode(mode==='day'?'night':'day');};
+(function initMode(){if(spots.length)setMode(mode);else setTimeout(initMode,300);})();
  (function loop(t){requestAnimationFrame(loop);
  wn.offset.set(t*0.00001,t*0.000015);
  if(anim){const k=Math.min((t-anim.start)/anim.dur,1),e=ease(k);cam.position.lerpVectors(anim.p0,anim.p1,e);controls.target.lerpVectors(anim.t0,anim.t1,e);if(k>=1){const d=anim.done;anim=null;d&&d();}}
