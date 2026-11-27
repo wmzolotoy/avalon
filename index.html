@@ -318,7 +318,14 @@ const pileGeo=new THREE.CylinderGeometry(0.13,0.15,2.2,10);
 [-3.2,0,3.2].forEach(x=>[-2.7,0.4,3.5].forEach(z=>{const p=new THREE.Mesh(pileGeo,darkMat);p.position.set(x,PH-1.1,z);p.castShadow=true;house.add(p);}));
 [-2.7,0.4,3.5].forEach(z=>bx(6.6,0.2,0.18,darkMat,0,PH-0.15,z));
 const houseHit=new THREE.Mesh(new THREE.BoxGeometry(W,4,D),new THREE.MeshBasicMaterial({visible:false}));houseHit.position.y=2;house.add(houseHit);
-// ===== КІНЕЦЬ ЧАСТИНИ 1 =====
+```js
+// правки елінгу: темне дерево, зачинені ворота, всередині порожньо
+hWood.color.set(0x5a4632);hWood.emissive.set(0x120c07);seamM.color.set(0x3a2c1f);
+house.remove(inBoat);house.remove(inLight);house.remove(doorGlow);
+house.children.filter(o=>o.isMesh&&Math.abs(o.position.y-(PH+0.32))<0.001&&Math.abs(o.position.z+0.2)<0.001).forEach(o=>house.remove(o));
+house.children.forEach(o=>{if(o.isGroup&&Math.abs(Math.abs(o.rotation.y)-1.9)<0.01)o.rotation.y=0;});
+```
+ // ===== КІНЕЦЬ ЧАСТИНИ 1 =====
  // ---------- студія ----------
 const studio=new THREE.Group();studio.visible=false;scene.add(studio);
 const floor=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x1a212b,roughness:0.6}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;studio.add(floor);
