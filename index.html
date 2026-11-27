@@ -233,32 +233,92 @@ for(let i=0;i<70;i++){const a=i/70*Math.PI*2,rad=205+Math.random()*25;const h=ne
  h.scale.set(28+Math.random()*25,14+Math.random()*16,22);h.position.set(Math.cos(a)*rad,2,Math.sin(a)*rad);h.rotation.y=-a;world.add(h);}
 for(let i=0;i<30;i++){const s=new THREE.Sprite(glowMat);const k=0.3+Math.random()*0.45;s.scale.set(k,k,1);s.position.set(-70+Math.random()*140,0.8+Math.random()*2,-14-Math.random()*12);world.add(s);}
 
-// ---------- ЕЛІНГ у кінці причалу ----------
+// ---------- ЕЛІНГ (фасад дивиться на човни) ----------
 const house=new THREE.Group();world.add(house);
 const hWood=new THREE.MeshStandardMaterial({color:0xb5483a,roughness:0.85,emissive:0x2a0c08,side:THREE.DoubleSide});
-const hRoof=new THREE.MeshStandardMaterial({color:0x5b6670,roughness:0.6,metalness:0.3});
+const hRoof=new THREE.MeshStandardMaterial({color:0x2e3238,roughness:0.6,metalness:0.3});
 const hTrim=new THREE.MeshStandardMaterial({color:0xf3ece0,roughness:0.7,emissive:0x2a2826});
-const W=5.6,D=4.2,Hh=2.6;
+const seamM=new THREE.MeshStandardMaterial({color:0x7a2a22,roughness:0.9});
+const brownM=new THREE.MeshStandardMaterial({color:0x6b4a2e,roughness:0.9});
+const ironM=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:0.5,metalness:0.6});
+const redM=new THREE.MeshStandardMaterial({color:0xd23a2a,roughness:0.6});
+const glowWin=new THREE.MeshBasicMaterial({color:0xffc27a,toneMapped:false});
+const W=5.6,D=4.2,Hh=2.6,F=D/2+0.07;
+function bx(w,h,d,mat,x,y,z,parent=house){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m;}
+// стіни, дах, фронтони
 [[W,Hh,0.12,0,Hh/2,-D/2],[0.12,Hh,D,-W/2,Hh/2,0],[0.12,Hh,D,W/2,Hh/2,0],[1.6,Hh,0.12,-W/2+0.8,Hh/2,D/2],[1.6,Hh,0.12,W/2-0.8,Hh/2,D/2],[W,0.5,0.12,0,Hh-0.25,D/2]].forEach(([a,b,c,x,y,z])=>{
- const m=new THREE.Mesh(new THREE.BoxGeometry(a,b,c),hWood);m.position.set(x,y+PH,z);m.castShadow=m.receiveShadow=true;house.add(m);});
+ const m=bx(a,b,c,hWood,x,y+PH,z);m.receiveShadow=true;});
 const roofL=new THREE.Mesh(new THREE.BoxGeometry(W/2+0.6,0.08,D+0.6),hRoof);roofL.position.set(-W/4-0.1,PH+Hh+0.7,0);roofL.rotation.z=0.5;roofL.castShadow=true;house.add(roofL);
 const roofR=roofL.clone();roofR.position.x=W/4+0.1;roofR.rotation.z=-0.5;house.add(roofR);
 const gShape=new THREE.Shape();gShape.moveTo(-W/2,0);gShape.lineTo(W/2,0);gShape.lineTo(0,1.48);gShape.closePath();
 const gGeo=new THREE.ShapeGeometry(gShape);
-[-D/2,D/2].forEach(z=>{const g=new THREE.Mesh(gGeo,hWood);g.position.set(0,PH+Hh,z);g.castShadow=true;house.add(g);});
-const ridge=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.12,D+0.7),hRoof);ridge.position.set(0,PH+Hh+1.5,0);house.add(ridge);
-const win=new THREE.Mesh(new THREE.CircleGeometry(0.28,24),new THREE.MeshBasicMaterial({color:0xffc27a,toneMapped:false}));win.position.set(0,PH+Hh+0.6,D/2+0.02);house.add(win);
-const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.1),new THREE.MeshBasicMaterial({color:0xffb36b,transparent:true,opacity:0.55,toneMapped:false}));doorGlow.position.set(0,PH+1.05,D/2-0.3);house.add(doorGlow);
-const houseLight=new THREE.PointLight(0xffb06a,18*LAMPS,9,2);houseLight.position.set(0,PH+1.6,D/2+0.6);house.add(houseLight);
-const houseFill=new THREE.SpotLight(0xfff0dc,40*LAMPS,20,0.7,0.6,1.5);houseFill.position.set(0,7,D/2+6);houseFill.target=house;house.add(houseFill);
-[-1.3,1.3].forEach(x=>{const t=new THREE.Mesh(new THREE.BoxGeometry(0.08,2.1,0.08),hTrim);t.position.set(x,PH+1.05,D/2+0.05);house.add(t);});
+[-D/2,D/2].forEach(z=>{const g=new THREE.Mesh(gGeo,hWood);g.position.set(0,PH+Hh,z);house.add(g);});
+bx(0.22,0.12,D+0.7,hRoof,0,PH+Hh+1.5,0);
+// білі вітрові дошки по краю даху та кути
+[-1,1].forEach(s=>{const t=bx(W/2+0.6,0.1,0.06,hTrim,s*(W/4+0.1),PH+Hh+0.66,D/2+0.31);t.rotation.z=-s*0.5;});
+[-1,1].forEach(s=>bx(0.12,Hh,0.12,hTrim,s*(W/2+0.02),PH+Hh/2,F-0.02));
+// вертикальна обшивка на фасаді
+for(let x=-W/2+0.25;x<W/2-0.1;x+=0.28){if(Math.abs(x)>1.32)bx(0.025,Hh-0.55,0.02,seamM,x,PH+(Hh-0.5)/2,F);bx(0.025,0.48,0.02,seamM,x,PH+Hh-0.25,F);}
+// кругле вікно у фронтоні
+const win=new THREE.Mesh(new THREE.CircleGeometry(0.28,24),glowWin);win.position.set(0,PH+Hh+0.6,F);house.add(win);
+const winR=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.04,8,28),hTrim);winR.position.set(0,PH+Hh+0.6,F+0.01);house.add(winR);
+// вікна з рамами та ящиками для квітів
+function windowAt(x,y,z,ry){
+ const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry;house.add(g);
+ const p=new THREE.Mesh(new THREE.PlaneGeometry(0.7,0.6),glowWin);p.position.z=0.005;g.add(p);
+ bx(0.82,0.06,0.05,hTrim,0,0.33,0.02,g);bx(0.82,0.06,0.05,hTrim,0,-0.33,0.02,g);
+ bx(0.06,0.66,0.05,hTrim,0.38,0,0.02,g);bx(0.06,0.66,0.05,hTrim,-0.38,0,0.02,g);
+ bx(0.03,0.6,0.04,hTrim,0,0,0.03,g);bx(0.7,0.03,0.04,hTrim,0,0,0.03,g);
+ bx(0.84,0.16,0.18,brownM,0,-0.46,0.1,g);
+ [-0.28,-0.1,0.1,0.28].forEach((fx,i)=>{const f=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,6),i%2?redM:new THREE.MeshStandardMaterial({color:0x3e7a3a}));f.position.set(fx,-0.34,0.1);g.add(f);});}
+windowAt(-2.0,PH+1.45,F,0);windowAt(2.0,PH+1.45,F,0);
+windowAt(-W/2-0.07,PH+1.45,0.6,-Math.PI/2);windowAt(W/2+0.07,PH+1.45,0.6,Math.PI/2);
+// відчинені ворота з білим хрестом
+[-1,1].forEach(s=>{
+ const g=new THREE.Group();g.position.set(s*1.3,PH+1.05,F);g.rotation.y=s*1.9;house.add(g);
+ bx(1.2,2.1,0.08,hWood,-s*0.6,0,0,g);
+ bx(1.2,0.08,0.1,hTrim,-s*0.6,1.0,0,g);bx(1.2,0.08,0.1,hTrim,-s*0.6,-1.0,0,g);
+ bx(0.08,2.1,0.1,hTrim,-s*1.16,0,0,g);
+ const d1=bx(0.07,2.3,0.1,hTrim,-s*0.6,0,0,g);d1.rotation.z=0.5;
+ const d2=bx(0.07,2.3,0.1,hTrim,-s*0.6,0,0,g);d2.rotation.z=-0.5;});
+[-1.3,1.3].forEach(x=>bx(0.1,2.15,0.1,hTrim,x,PH+1.07,F+0.02));
+bx(2.7,0.1,0.1,hTrim,0,PH+2.15,F+0.02);
+// світло всередині та над воротами
+const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(2.5,2.1),new THREE.MeshBasicMaterial({color:0xffb36b,transparent:true,opacity:0.35,toneMapped:false}));doorGlow.position.set(0,PH+1.05,-D/2+0.08);house.add(doorGlow);
+const inLight=new THREE.PointLight(0xffb06a,10*LAMPS,6,2);inLight.position.set(0,PH+2,0);house.add(inLight);
+bx(0.18,0.12,0.12,ironM,0,PH+2.35,F+0.08);
+const sconce=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.14),glassMat);sconce.position.set(0,PH+2.22,F+0.12);house.add(sconce);
+const sGlow=new THREE.Sprite(glowMat);sGlow.scale.set(0.8,0.8,1);sGlow.position.set(0,PH+2.22,F+0.15);house.add(sGlow);
+const houseLight=new THREE.PointLight(0xffb06a,14*LAMPS,8,2);houseLight.position.set(0,PH+2,F+1);house.add(houseLight);
+const houseFill=new THREE.SpotLight(0xfff0dc,22*LAMPS,20,0.7,0.6,1.5);houseFill.position.set(0,7,D/2+6);houseFill.target=house;house.add(houseFill);
+// човник усередині
+const inBoat=new THREE.Mesh(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,Math.PI/2,Math.PI/2),new THREE.MeshStandardMaterial({color:0x2f5d4a,roughness:0.6,side:THREE.DoubleSide}));
+inBoat.scale.set(0.6,0.35,1.5);inBoat.position.set(0,PH+0.4,-0.2);house.add(inBoat);
+bx(1.0,0.05,0.25,brownM,0,PH+0.32,-0.2);
+// рятувальний круг
+const lr1=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.06,10,28),new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:0.5}));lr1.position.set(-2.0,PH+2.2,F+0.06);house.add(lr1);
+[0,1,2,3].forEach(i=>{const a=i*Math.PI/2+Math.PI/4;const b=bx(0.1,0.13,0.14,redM,-2.0+Math.cos(a)*0.2,PH+2.2+Math.sin(a)*0.2,F+0.06);b.rotation.z=a;});
+// бочки
+[[1.95,F+0.55,0],[2.45,F+0.75,0],[2.2,F+0.62,1]].forEach(([x,z,top])=>{
+ const y=top?PH+0.85:PH+0.29;
+ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.56,14),brownM);b.position.set(x,y,z);b.castShadow=true;house.add(b);
+ [-0.18,0.18].forEach(dy=>{const h=new THREE.Mesh(new THREE.TorusGeometry(0.225,0.015,6,20),ironM);h.rotation.x=Math.PI/2;h.position.set(x,y+dy,z);house.add(h);});});
+// ящики та вудки
+bx(0.5,0.38,0.45,brownM,-2.1,PH+0.2,F+0.55);bx(0.4,0.3,0.38,brownM,-2.05,PH+0.54,F+0.52);
+[-1.75,-1.62,-1.5].forEach((x,i)=>{const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.02,2.2,6),ironM);rod.position.set(x,PH+1.1,F+0.25);rod.rotation.x=-0.12;rod.rotation.z=(i-1)*0.05;house.add(rod);});
+// сітка на стіні
+const netC=document.createElement('canvas');netC.width=netC.height=128;const ng=netC.getContext('2d');ng.strokeStyle='rgba(225,215,190,.85)';ng.lineWidth=2;
+for(let i=-128;i<256;i+=16){ng.beginPath();ng.moveTo(i,0);ng.lineTo(i+128,128);ng.stroke();ng.beginPath();ng.moveTo(i+128,0);ng.lineTo(i,128);ng.stroke();}
+const netT=new THREE.CanvasTexture(netC);
+const net=new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.8),new THREE.MeshStandardMaterial({map:netT,transparent:true,side:THREE.DoubleSide}));net.position.set(W/2+0.08,PH+1.1,-1.0);net.rotation.y=Math.PI/2;house.add(net);
+// ліхтарі біля входу, поміст і палі
 [-W/2-0.15,W/2+0.15].forEach(x=>house.add(lantern(x,D/2+0.3)));
 const deck=new THREE.Mesh(new THREE.BoxGeometry(W+1.2,0.08,D+2.4),plankMats[1]);deck.position.set(0,PH-0.02,0.4);deck.receiveShadow=true;house.add(deck);
 const pileGeo=new THREE.CylinderGeometry(0.13,0.15,2.2,10);
 [-3.2,0,3.2].forEach(x=>[-2.7,0.4,3.5].forEach(z=>{const p=new THREE.Mesh(pileGeo,darkMat);p.position.set(x,PH-1.1,z);p.castShadow=true;house.add(p);}));
-[-2.7,0.4,3.5].forEach(z=>{const b=new THREE.Mesh(new THREE.BoxGeometry(6.6,0.2,0.18),darkMat);b.position.set(0,PH-0.15,z);house.add(b);});
+[-2.7,0.4,3.5].forEach(z=>bx(6.6,0.2,0.18,darkMat,0,PH-0.15,z));
 const houseHit=new THREE.Mesh(new THREE.BoxGeometry(W,4,D),new THREE.MeshBasicMaterial({visible:false}));houseHit.position.y=2;house.add(houseHit);
-
+// ===== КІНЕЦЬ ЧАСТИНИ 1 =====
  // ---------- студія ----------
 const studio=new THREE.Group();studio.visible=false;scene.add(studio);
 const floor=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x1a212b,roughness:0.6}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;studio.add(floor);
@@ -297,7 +357,7 @@ function arrange(){
   p.position.set(pierX+(Math.random()-0.5)*0.04,PH+(Math.random()-0.5)*0.01,z);p.rotation.y=(Math.random()-0.5)*0.02;
   p.castShadow=p.receiveShadow=true;pier.add(p);}
  for(let z=Z0;z<=houseZ;z+=2.5){[-1.15,1.15].forEach(x=>{const p=new THREE.Mesh(postGeo,darkMat);p.position.set(pierX+x,PH-0.3,z);p.castShadow=true;pier.add(p);});}
- house.position.set(pierX,0,houseZ+2.1);
+ house.position.set(pierX,0,houseZ+2.6);house.rotation.y=Math.PI;
  boats.forEach((b,i)=>{
   let side,z;if(desk){side=i%2?1:-1;z=Math.floor(i/2)*GAP;}else{side=1;z=i*GAP;}
   const edge=pierX+side*PIER_HALF,x=edge+side*(0.2+bw/2);
